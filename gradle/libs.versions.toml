@@ -1,0 +1,11 @@
+[versions]
+ksp = "2.2.0-2.0.2"
+kotlin = "2.2.0"
+
+[libraries]
+
+[plugins]
+kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
