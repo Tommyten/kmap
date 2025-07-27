@@ -1,9 +1,12 @@
-package es.horm.kmap.sample
 
-import com.example.generated.toBusinessModel
+import com.example.generated.toTestModel
 import es.horm.kmap.runtime.KmapTo
+import es.horm.kmap.runtime.Mapping
 
-@KmapTo(BusinessModel::class)
+@KmapTo(
+    target = BusinessModel::class,
+    mappings = [Mapping("c", "test")]
+)
 @KmapTo(TestModel::class)
 data class Dto(
     val a: Int,
@@ -13,7 +16,8 @@ data class Dto(
 
 data class BusinessModel(
     val a: Int,
-    val b: Int
+    val b: Int,
+    val test: Int,
 )
 data class TestModel(
     val b: Int,
@@ -21,6 +25,6 @@ data class TestModel(
 )
 
 fun main() {
-    Dto(1,2,3).toBusinessModel()
+    Dto(1,2,3).toTestModel()
     println("Ran!")
 }
