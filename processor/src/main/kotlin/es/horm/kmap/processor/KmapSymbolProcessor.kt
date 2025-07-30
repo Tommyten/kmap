@@ -13,9 +13,11 @@ import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
+import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 import es.horm.kmap.runtime.KmapTo
+import es.horm.kmap.runtime.KmapTransformer
 
 class KmapSymbolProcessor(
     private val generator: CodeGenerator,
@@ -39,13 +41,14 @@ class KmapSymbolProcessor(
 
                 val sourceArg = mappingAnnotation.arguments.first { it.name?.asString() == "source" }.value as? String ?: return@mapNotNull null
                 val targetArg = mappingAnnotation.arguments.first { it.name?.asString() == "target" }.value as? String ?: return@mapNotNull null
-                ParamMapping(sourceArg, targetArg)
-            }?.associate { it.target to it.source }
+                val transformerArg = (mappingAnnotation.arguments.first { it.name?.asString() == "transformer" }.value as? KSType)?.declaration as? KSClassDeclaration
+                ParamMapping(sourceArg, targetArg, transformerArg)
+            }
 
             buildFunSpec(
                 source,
                 (it.arguments.first { it.name?.asString() == "target" }.value as KSType).declaration as KSClassDeclaration,
-                mappings ?: mapOf()
+                mappings ?: listOf()
             )
         }
 
@@ -59,25 +62,23 @@ class KmapSymbolProcessor(
         return emptyList()
     }
 
-    data class ParamMapping(val source: String, val target: String)
+    data class ParamMapping(val source: String, val target: String, val transformer: KSClassDeclaration?)
 
     fun KSClassDeclaration.getAllPublicProperties() = getAllProperties().filter { it.isPublic() }
 
     private fun buildFunSpec(
         source: KSClassDeclaration,
         target: KSClassDeclaration,
-        mappings: Map<String, String> = mapOf()
+        mappings: List<ParamMapping> = listOf()
     ): FunSpec {
         val sourceParams = source.getAllPublicProperties().associate { it.simpleName.asString() to it.type.resolve() }
         val targetParams = target.primaryConstructor!!.parameters.associate { it.name!!.asString() to it.type.resolve() }
-
-//        if (!targetParams.all { sourceParams[it.key] == it.value }) error("Not all params of target are contained in source")
 
         val matchingTargetParams = targetParams.filter { sourceParams[it.key] == it.value}
         val nonMatchingTargetParams = targetParams.filterNot { sourceParams[it.key] == it.value }
 
         val test = nonMatchingTargetParams.all { (targetParamName, targetParamType) ->
-            val (mappingTarget, mappingSource) = mappings.entries.first { it.key == targetParamName }
+            val mappingSource = mappings.first { it.target == targetParamName }.source
             val src = sourceParams[mappingSource]
             src == targetParamType
         }
@@ -93,7 +94,12 @@ class KmapSymbolProcessor(
                     add("%L = %L,\n", it.key, it.key)
                 }
                 mappings.forEach {
-                    add("%L = %L,\n", it.key, it.value)
+                    if(it.transformer == null) {
+                        add("%L = %L,\n", it.target, it.source)
+                    } else {
+                        //it.transformer
+                        add("%L = %L().transofmr(%L)", it.target, it.transformer?.toClassName()?.simpleName, it.source)
+                    }
                 }
             }
             .unindent()
