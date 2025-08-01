@@ -20,6 +20,9 @@ out/
 ### Kotlin ###
 .kotlin
 
+### Android ###
+local.properties
+
 ### Eclipse ###
 .apt_generated
 .classpath
