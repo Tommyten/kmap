@@ -8,6 +8,7 @@ import kotlin.reflect.KClass
 annotation class KmapTo(
     val target: KClass<*>,
     val mappings: Array<Mapping> = [],
+    val aggregators: Array<Aggregator> = []
 )
 
 annotation class Mapping(
@@ -16,10 +17,11 @@ annotation class Mapping(
     val transformer: KClass<out KmapTransformer<*, *>> = KmapTransformer::class,
 )
 
-annotation class Transformation(
-    val transformer: KClass<KmapTransformer<*, *>>
-)
-
 fun interface KmapTransformer<in T, out O> {
     fun transform(value: T): O
 }
+
+annotation class Aggregator(
+    val target: String,
+    val transformer: KClass<out KmapTransformer<*, *>> = KmapTransformer::class,
+)

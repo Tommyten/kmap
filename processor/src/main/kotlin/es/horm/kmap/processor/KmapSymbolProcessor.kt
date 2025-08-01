@@ -10,6 +10,7 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
+import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
@@ -17,7 +18,6 @@ import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 import es.horm.kmap.runtime.KmapTo
-import es.horm.kmap.runtime.KmapTransformer
 
 class KmapSymbolProcessor(
     private val generator: CodeGenerator,
@@ -33,6 +33,7 @@ class KmapSymbolProcessor(
         val source = resolver.getSymbolsWithAnnotation(KmapTo::class.qualifiedName!!).single() as KSClassDeclaration
         val annotations = source.annotations.filter { it.shortName.asString() == "KmapTo" }
 
+        val imports = mutableListOf<ClassName>()
         val funs = annotations.map {
 
             val mappingsArg = it.arguments.firstOrNull() { it.name?.asString() == "mappings" }?.value as? List<*>
@@ -42,6 +43,7 @@ class KmapSymbolProcessor(
                 val sourceArg = mappingAnnotation.arguments.first { it.name?.asString() == "source" }.value as? String ?: return@mapNotNull null
                 val targetArg = mappingAnnotation.arguments.first { it.name?.asString() == "target" }.value as? String ?: return@mapNotNull null
                 val transformerArg = (mappingAnnotation.arguments.first { it.name?.asString() == "transformer" }.value as? KSType)?.declaration as? KSClassDeclaration
+                transformerArg?.let { imports.add(it.toClassName()) }
                 ParamMapping(sourceArg, targetArg, transformerArg)
             }
 
@@ -97,8 +99,7 @@ class KmapSymbolProcessor(
                     if(it.transformer == null) {
                         add("%L = %L,\n", it.target, it.source)
                     } else {
-                        //it.transformer
-                        add("%L = %L().transofmr(%L)", it.target, it.transformer?.toClassName()?.simpleName, it.source)
+                        add("%L = %T().transform(%L),\n", it.target, it.transformer.toClassName(), it.source)
                     }
                 }
             }
