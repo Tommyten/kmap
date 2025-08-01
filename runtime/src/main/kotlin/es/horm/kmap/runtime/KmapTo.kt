@@ -14,11 +14,15 @@ annotation class KmapTo(
 annotation class Mapping(
     val source: String,
     val target: String,
-    val transformer: KClass<out KmapTransformer<*, *>> = KmapTransformer::class,
+    val transformer: KClass<out KmapTransformer<*, *>> = NOOP::class,
 )
 
 fun interface KmapTransformer<in T, out O> {
     fun transform(value: T): O
+}
+
+object NOOP : KmapTransformer<Any, Any> {
+    override fun transform(value: Any) = value
 }
 
 annotation class Aggregator(

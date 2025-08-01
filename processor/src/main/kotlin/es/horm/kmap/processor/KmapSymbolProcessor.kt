@@ -10,14 +10,16 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSAnnotation
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSType
-import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
+import es.horm.kmap.runtime.Aggregator
 import es.horm.kmap.runtime.KmapTo
+import es.horm.kmap.runtime.NOOP
 
 class KmapSymbolProcessor(
     private val generator: CodeGenerator,
@@ -33,7 +35,6 @@ class KmapSymbolProcessor(
         val source = resolver.getSymbolsWithAnnotation(KmapTo::class.qualifiedName!!).single() as KSClassDeclaration
         val annotations = source.annotations.filter { it.shortName.asString() == "KmapTo" }
 
-        val imports = mutableListOf<ClassName>()
         val funs = annotations.map {
 
             val mappingsArg = it.arguments.firstOrNull() { it.name?.asString() == "mappings" }?.value as? List<*>
@@ -43,19 +44,29 @@ class KmapSymbolProcessor(
                 val sourceArg = mappingAnnotation.arguments.first { it.name?.asString() == "source" }.value as? String ?: return@mapNotNull null
                 val targetArg = mappingAnnotation.arguments.first { it.name?.asString() == "target" }.value as? String ?: return@mapNotNull null
                 val transformerArg = (mappingAnnotation.arguments.first { it.name?.asString() == "transformer" }.value as? KSType)?.declaration as? KSClassDeclaration
-                transformerArg?.let { imports.add(it.toClassName()) }
                 ParamMapping(sourceArg, targetArg, transformerArg)
+            }
+
+            val aggregatorArg = it.arguments.firstOrNull { it.name?.asString() == "aggregators" }?.value as? List<*>
+            val aggregators = aggregatorArg?.mapNotNull {
+                val aggregatorAnnotation = it as? KSAnnotation ?: return@mapNotNull null
+
+                val targetArg = aggregatorAnnotation.arguments.first { it.name?.asString() == Aggregator::target.name }.value as? String ?: return@mapNotNull null
+                val transformerArg = (aggregatorAnnotation.arguments.first { it.name?.asString() == "transformer" }.value as? KSType)?.declaration as? KSClassDeclaration ?: return@mapNotNull null
+                ParamAggregation(targetArg, transformerArg)
             }
 
             buildFunSpec(
                 source,
                 (it.arguments.first { it.name?.asString() == "target" }.value as KSType).declaration as KSClassDeclaration,
-                mappings ?: listOf()
+                mappings ?: listOf(),
+                aggregators ?: listOf(),
             )
         }
 
         val fileSpec = FileSpec.builder("com.example.generated", "Test")
             .addFunctions(funs.toList())
+            .addAnnotation(AnnotationSpec.builder(Suppress::class).addMember(""""all"""").build())
             .build()
 
         fileSpec.writeTo(codeGenerator = generator, aggregating = false)
@@ -65,13 +76,15 @@ class KmapSymbolProcessor(
     }
 
     data class ParamMapping(val source: String, val target: String, val transformer: KSClassDeclaration?)
+    data class ParamAggregation(val target: String, val transformer: KSClassDeclaration)
 
     fun KSClassDeclaration.getAllPublicProperties() = getAllProperties().filter { it.isPublic() }
 
     private fun buildFunSpec(
         source: KSClassDeclaration,
         target: KSClassDeclaration,
-        mappings: List<ParamMapping> = listOf()
+        mappings: List<ParamMapping> = listOf(),
+        aggregators: List<ParamAggregation> = listOf()
     ): FunSpec {
         val sourceParams = source.getAllPublicProperties().associate { it.simpleName.asString() to it.type.resolve() }
         val targetParams = target.primaryConstructor!!.parameters.associate { it.name!!.asString() to it.type.resolve() }
@@ -79,12 +92,16 @@ class KmapSymbolProcessor(
         val matchingTargetParams = targetParams.filter { sourceParams[it.key] == it.value}
         val nonMatchingTargetParams = targetParams.filterNot { sourceParams[it.key] == it.value }
 
-        val test = nonMatchingTargetParams.all { (targetParamName, targetParamType) ->
-            val mappingSource = mappings.first { it.target == targetParamName }.source
+        val paramsNotSatisfiedByMappings = nonMatchingTargetParams.filterNot { (targetParamName, targetParamType) ->
+            val mappingSource = mappings.firstOrNull() { it.target == targetParamName }?.source ?: return@filterNot false
             val src = sourceParams[mappingSource]
             src == targetParamType
         }
-        check(test)
+        val paramsNotSatisfiedByAggregation = paramsNotSatisfiedByMappings.filterNot { (targetParamName, targetParamType) ->
+            val correspondingAggregator = aggregators.firstOrNull { it.target == targetParamName } ?: return@filterNot false
+            true
+        }
+        check(paramsNotSatisfiedByAggregation.isEmpty())
 
         val targetTypeName = target.asStarProjectedType().toTypeName()
 
@@ -96,11 +113,14 @@ class KmapSymbolProcessor(
                     add("%L = %L,\n", it.key, it.key)
                 }
                 mappings.forEach {
-                    if(it.transformer == null) {
+                    if(it.transformer?.simpleName?.asString() == NOOP::class.simpleName) {
                         add("%L = %L,\n", it.target, it.source)
                     } else {
-                        add("%L = %T().transform(%L),\n", it.target, it.transformer.toClassName(), it.source)
+                        add("%L = %T().transform(%L),\n", it.target, it.transformer?.toClassName(), it.source)
                     }
+                }
+                aggregators.forEach {
+                    add("%L = %T().transform(this),\n", it.target, it.transformer.toClassName())
                 }
             }
             .unindent()
