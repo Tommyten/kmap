@@ -1,6 +1,5 @@
 package es.horm.kmap.sample
 
-import com.example.generated.toBusinessModel
 import com.example.generated.toPersonBusinessModel
 import es.horm.kmap.runtime.Aggregator
 import es.horm.kmap.runtime.KmapTo

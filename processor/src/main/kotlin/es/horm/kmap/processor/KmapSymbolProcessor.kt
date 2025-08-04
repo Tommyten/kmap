@@ -19,7 +19,9 @@ import com.squareup.kotlinpoet.ksp.toTypeName
 import com.squareup.kotlinpoet.ksp.writeTo
 import es.horm.kmap.runtime.Aggregator
 import es.horm.kmap.runtime.KmapTo
+import es.horm.kmap.runtime.Mapping
 import es.horm.kmap.runtime.NOOP
+import kotlin.reflect.KProperty
 
 class KmapSymbolProcessor(
     private val generator: CodeGenerator,
@@ -35,37 +37,41 @@ class KmapSymbolProcessor(
         val source = resolver.getSymbolsWithAnnotation(KmapTo::class.qualifiedName!!).single() as KSClassDeclaration
         val annotations = source.annotations.filter { it.shortName.asString() == "KmapTo" }
 
-        val funs = annotations.map {
-
-            val mappingsArg = it.arguments.firstOrNull() { it.name?.asString() == "mappings" }?.value as? List<*>
+        // iterate over all kmapTo Annotations the class is annotated with
+        val mapperFunSpecs = annotations.map { kmapToInstance ->
+            // get all mappings in the mapping array arg and assemble a ParamMapping Instance with its arguments
+            val mappingsArg = kmapToInstance.arguments.firstOrNull { it.name?.asString() == "mappings" }?.value as? List<*>
             val mappings = mappingsArg?.mapNotNull {
                 val mappingAnnotation = it as? KSAnnotation ?: return@mapNotNull null
 
-                val sourceArg = mappingAnnotation.arguments.first { it.name?.asString() == "source" }.value as? String ?: return@mapNotNull null
-                val targetArg = mappingAnnotation.arguments.first { it.name?.asString() == "target" }.value as? String ?: return@mapNotNull null
+                val sourceArg = mappingAnnotation.getArgument(Mapping::source) ?: return@mapNotNull null
+                val targetArg = mappingAnnotation.getArgument(Mapping::target) ?: return@mapNotNull null
                 val transformerArg = (mappingAnnotation.arguments.first { it.name?.asString() == "transformer" }.value as? KSType)?.declaration as? KSClassDeclaration
+
                 ParamMapping(sourceArg, targetArg, transformerArg)
             }
 
-            val aggregatorArg = it.arguments.firstOrNull { it.name?.asString() == "aggregators" }?.value as? List<*>
+            // get all aggregators in the aggregator array arg and assemble a ParamAggregration Instance with its arguments
+            val aggregatorArg = kmapToInstance.arguments.firstOrNull { it.name?.asString() == "aggregators" }?.value as? List<*>
             val aggregators = aggregatorArg?.mapNotNull {
                 val aggregatorAnnotation = it as? KSAnnotation ?: return@mapNotNull null
 
-                val targetArg = aggregatorAnnotation.arguments.first { it.name?.asString() == Aggregator::target.name }.value as? String ?: return@mapNotNull null
-                val transformerArg = (aggregatorAnnotation.arguments.first { it.name?.asString() == "transformer" }.value as? KSType)?.declaration as? KSClassDeclaration ?: return@mapNotNull null
+                val targetArg = aggregatorAnnotation.getArgument(Aggregator::target) ?: return@mapNotNull null
+                val transformerArg = (aggregatorAnnotation.arguments.first { it.name?.asString() == Aggregator::transformer.name }.value as? KSType)?.declaration as? KSClassDeclaration ?: return@mapNotNull null
                 ParamAggregation(targetArg, transformerArg)
             }
 
+            val targetClass = (kmapToInstance.arguments.first { it.name?.asString() == "target" }.value as KSType).declaration as KSClassDeclaration
             buildFunSpec(
-                source,
-                (it.arguments.first { it.name?.asString() == "target" }.value as KSType).declaration as KSClassDeclaration,
-                mappings ?: listOf(),
-                aggregators ?: listOf(),
+                source = source,
+                target = targetClass,
+                mappings = mappings ?: listOf(),
+                aggregators = aggregators ?: listOf(),
             )
         }
 
         val fileSpec = FileSpec.builder("com.example.generated", "Test")
-            .addFunctions(funs.toList())
+            .addFunctions(mapperFunSpecs.toList())
             .addAnnotation(AnnotationSpec.builder(Suppress::class).addMember(""""all"""").build())
             .build()
 
@@ -97,8 +103,8 @@ class KmapSymbolProcessor(
             val src = sourceParams[mappingSource]
             src == targetParamType
         }
-        val paramsNotSatisfiedByAggregation = paramsNotSatisfiedByMappings.filterNot { (targetParamName, targetParamType) ->
-            val correspondingAggregator = aggregators.firstOrNull { it.target == targetParamName } ?: return@filterNot false
+        val paramsNotSatisfiedByAggregation = paramsNotSatisfiedByMappings.filterNot { (targetParamName, _) ->
+            aggregators.firstOrNull { it.target == targetParamName } ?: return@filterNot false
             true
         }
         check(paramsNotSatisfiedByAggregation.isEmpty())
@@ -133,4 +139,9 @@ class KmapSymbolProcessor(
             .addCode(constructorCall)
             .build()
     }
+}
+
+@Suppress("UNCHECKED_CAST")
+fun <T> KSAnnotation.getArgument(property: KProperty<T>): T? {
+    return arguments.first { it.name?.asString() == property.name }.value as T?
 }

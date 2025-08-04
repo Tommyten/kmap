@@ -1,6 +1,8 @@
-# TODOs
+# kmap
 
-## Nested Mapping
+## TODOs
+
+### Nested Mapping
 There currently exist no properly supported way to do nested mappings.
 You probably could use an aggregator for each property. However, that would be way too verbose since you'd need one aggregator
 for each single property of your nested object (in the example below that'd already be two aggregators although the Address class
@@ -34,15 +36,18 @@ data class PersonBusinessModel(
 )
 ```
 
-## Check Mapping Types
-Currently, I do not check, whether a Transformer actually returns the type it is supposed to
+### Check Mapping Types
+Currently, I do not check, whether a Transformer actually returns the type it is supposed to 
+How to handle type conflicts?
 
-## Proper Error Messages
+### Proper Error Messages
 
-## Configurability
+### Configurability
 - Package where the extension functions are generated to
 - Naming Scheme of the generated extension functions
 
-# Credits
+### Two Way mapping
+
+## Credits
 
 Thank you to Daniel Pelsmaeker for teaching me [How to debug KSP processors](https://pelsmaeker.net/articles/debugging-ksp-gradle-plugin/)
