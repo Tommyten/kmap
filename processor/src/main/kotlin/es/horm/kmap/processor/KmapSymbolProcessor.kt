@@ -34,7 +34,7 @@ class KmapSymbolProcessor(
     override fun process(resolver: Resolver): List<KSAnnotated> {
         if (generated) return emptyList()
 
-        val source = resolver.getSymbolsWithAnnotation(KmapTo::class.qualifiedName!!).single() as KSClassDeclaration
+        val source = resolver.getSymbolsWithAnnotation(KmapTo::class.qualifiedName!!).singleOrNull() as? KSClassDeclaration ?: return emptyList()
         val annotations = source.annotations.filter { it.shortName.asString() == "KmapTo" }
 
         // iterate over all kmapTo Annotations the class is annotated with

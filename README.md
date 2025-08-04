@@ -47,6 +47,9 @@ How to handle type conflicts?
 - Naming Scheme of the generated extension functions
 
 ### Two Way mapping
+- [ ] implement a KmapFrom Annotation that does basically the same as @KmapTo just source and
+  target are the other way round.
+- 
 
 ## Credits
 

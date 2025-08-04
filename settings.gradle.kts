@@ -16,3 +16,6 @@ dependencyResolutionManagement {
 include(":processor")
 include(":runtime")
 include(":sample")
+
+include(":multi-module-sample:moduleA")
+include(":multi-module-sample:moduleB")
