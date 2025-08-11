@@ -1,0 +1,40 @@
+public abstract interface class es/horm/kmap/runtime/KmapTransformer {
+	public abstract fun transform (Ljava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class es/horm/kmap/runtime/NOOP : es/horm/kmap/runtime/KmapTransformer {
+	public static final field INSTANCE Les/horm/kmap/runtime/NOOP;
+	public fun transform (Ljava/lang/Object;)Ljava/lang/Object;
+}
+
+public abstract interface annotation class es/horm/kmap/runtime/annotation/Aggregator : java/lang/annotation/Annotation {
+	public abstract fun target ()Ljava/lang/String;
+	public abstract fun transformer ()Ljava/lang/Class;
+}
+
+public abstract interface annotation class es/horm/kmap/runtime/annotation/KmapFrom : java/lang/annotation/Annotation {
+	public abstract fun aggregators ()[Les/horm/kmap/runtime/annotation/Aggregator;
+	public abstract fun mappings ()[Les/horm/kmap/runtime/annotation/Mapping;
+	public abstract fun source ()Ljava/lang/Class;
+}
+
+public abstract interface annotation class es/horm/kmap/runtime/annotation/KmapFrom$Container : java/lang/annotation/Annotation {
+	public abstract fun value ()[Les/horm/kmap/runtime/annotation/KmapFrom;
+}
+
+public abstract interface annotation class es/horm/kmap/runtime/annotation/KmapTo : java/lang/annotation/Annotation {
+	public abstract fun aggregators ()[Les/horm/kmap/runtime/annotation/Aggregator;
+	public abstract fun mappings ()[Les/horm/kmap/runtime/annotation/Mapping;
+	public abstract fun target ()Ljava/lang/Class;
+}
+
+public abstract interface annotation class es/horm/kmap/runtime/annotation/KmapTo$Container : java/lang/annotation/Annotation {
+	public abstract fun value ()[Les/horm/kmap/runtime/annotation/KmapTo;
+}
+
+public abstract interface annotation class es/horm/kmap/runtime/annotation/Mapping : java/lang/annotation/Annotation {
+	public abstract fun source ()Ljava/lang/String;
+	public abstract fun target ()Ljava/lang/String;
+	public abstract fun transformer ()Ljava/lang/Class;
+}
+

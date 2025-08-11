@@ -1,10 +1,10 @@
 package es.horm.kmap.moduleA
 
 import es.horm.kmap.moduleB.SomeBusinessModel
-import es.horm.kmap.runtime.Aggregator
-import es.horm.kmap.runtime.KmapTo
+import es.horm.kmap.runtime.annotation.Aggregator
 import es.horm.kmap.runtime.KmapTransformer
-import es.horm.kmap.runtime.Mapping
+import es.horm.kmap.runtime.annotation.KmapTo
+import es.horm.kmap.runtime.annotation.Mapping
 
 class NameAggregator : KmapTransformer<SomeDto, Int> {
     override fun transform(value: SomeDto): Int = value.a + value.b
