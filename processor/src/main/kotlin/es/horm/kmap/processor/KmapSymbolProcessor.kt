@@ -22,6 +22,7 @@ import es.horm.kmap.runtime.annotation.Mapping
 import es.horm.kmap.runtime.NOOP
 import es.horm.kmap.runtime.annotation.KmapFrom
 import es.horm.kmap.runtime.annotation.KmapTo
+import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 
 class KmapSymbolProcessor(
@@ -48,6 +49,23 @@ class KmapSymbolProcessor(
                 )
             )
         }
+
+        for(instance in kmapFromAnnotations) {
+            logger.info("KmapFrom: ${KmapFrom::source.name}")
+            logger.info("Instance args ${instance.arguments}")
+            logger.info("Any? ${instance.arguments.any { it.name?.asString() == KmapFrom::source.name }}")
+            logger.info("KmapFrom: ${KmapFrom::source.name} Test ${instance.arguments.any { it.name?.asString() == KmapFrom::source.name }.toString()}")
+            val sourceClass = (instance.arguments.firstOrNull { it.name?.asString() == KmapFrom::source.name }?.value as? KSType)?.declaration as? KSClassDeclaration ?: break
+            funSpecs.add(
+                buildMapperFromMapTo(
+                    source = sourceClass,
+                    target = ksClass,
+                    mappings = instance.assembleParamMappings(),
+                    aggregators = instance.assembleParamAggregations(),
+                )
+            )
+        }
+
         return funSpecs
     }
 
@@ -82,8 +100,10 @@ class KmapSymbolProcessor(
     override fun process(resolver: Resolver): List<KSAnnotated> {
         if (generated) return emptyList()
 
-        val annotatedClasses = resolver.getSymbolsWithAnnotation(KmapTo::class.qualifiedName!!)
-            .toList().filterIsInstance<KSClassDeclaration>()
+        val kmapToAnnotatedClasses = resolver.getClassesWithAnnotation(KmapTo::class)
+        val kmapFromAnnotatedClasses = resolver.getClassesWithAnnotation(KmapFrom::class)
+
+        val annotatedClasses = kmapToAnnotatedClasses.plus(kmapFromAnnotatedClasses).distinct()
 
         val allFunSpecs = annotatedClasses.flatMap { generateFunSpecs(it) }
 
@@ -97,6 +117,11 @@ class KmapSymbolProcessor(
 
         return emptyList()
     }
+
+    private fun Resolver.getClassesWithAnnotation(annotation: KClass<*>): List<KSClassDeclaration> =
+        getSymbolsWithAnnotation(annotation.qualifiedName!!)
+            .toList()
+            .filterIsInstance<KSClassDeclaration>()
 
     private fun buildMapperFromMapTo(
         source: KSClassDeclaration,

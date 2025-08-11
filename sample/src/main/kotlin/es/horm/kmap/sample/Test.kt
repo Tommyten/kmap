@@ -3,6 +3,7 @@ package es.horm.kmap.sample
 import com.example.generated.toPersonBusinessModel
 import es.horm.kmap.runtime.annotation.Aggregator
 import es.horm.kmap.runtime.KmapTransformer
+import es.horm.kmap.runtime.annotation.KmapFrom
 import es.horm.kmap.runtime.annotation.KmapTo
 import es.horm.kmap.runtime.annotation.Mapping
 
@@ -26,12 +27,24 @@ data class PersonBusinessModel(
     val age: Int, // called yearsOld in Dto -> handled by mapper
 )
 
-@KmapTo(B::class)
 data class A(
-    val a: Int
+    val a: Int,
+    val b: Int,
 )
 
-data class B(val a: Int)
+class TestMapper : KmapTransformer<Int, Int> {
+    override fun transform(value: Int): Int = value * 4
+
+}
+
+@KmapFrom(
+    source = A::class,
+    mappings = [Mapping(source = "a", target = "c", transformer = TestMapper::class)],
+)
+data class B(
+    val a: Int,
+    val c: Int,
+)
 
 fun main() {
     val personFromApi = PersonDto("Max", "Mustermann", 42)
