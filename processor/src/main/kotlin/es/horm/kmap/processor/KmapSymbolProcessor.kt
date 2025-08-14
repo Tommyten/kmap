@@ -136,15 +136,11 @@ class KmapSymbolProcessor(
         val matchingTargetParams = targetParams.filter { sourceParams[it.key] == it.value }
         val nonMatchingTargetParams = targetParams.filterNot { sourceParams[it.key] == it.value }
 
-        val paramsNotSatisfiedByMappings = nonMatchingTargetParams.filterNot { (targetParamName, targetParamType) ->
-            val mappingSource =
-                mappings.firstOrNull() { it.target == targetParamName }?.source ?: return@filterNot false
-            val src = sourceParams[mappingSource]
-            src == targetParamType
+        val paramsNotSatisfiedByMappings = nonMatchingTargetParams.filterNot { (targetParamName, _) ->
+            mappings.any { it.target == targetParamName }
         }
         val paramsNotSatisfiedByAggregation = paramsNotSatisfiedByMappings.filterNot { (targetParamName, _) ->
-            aggregators.firstOrNull { it.target == targetParamName } ?: return@filterNot false
-            true
+            aggregators.any { it.target == targetParamName }
         }
         check(paramsNotSatisfiedByAggregation.isEmpty())
 

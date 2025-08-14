@@ -32,8 +32,8 @@ data class A(
     val b: Int,
 )
 
-class TestMapper : KmapTransformer<Int, Int> {
-    override fun transform(value: Int): Int = value * 4
+class TestMapper : KmapTransformer<Int, String> {
+    override fun transform(value: Int): String = "$value"
 
 }
 
@@ -43,7 +43,7 @@ class TestMapper : KmapTransformer<Int, Int> {
 )
 data class B(
     val a: Int,
-    val c: Int,
+    val c: String,
 )
 
 fun main() {
