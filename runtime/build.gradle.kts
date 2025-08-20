@@ -10,10 +10,6 @@ plugins {
     alias(libs.plugins.gradleMavenPublish)
 }
 
-repositories {
-    mavenCentral()
-}
-
 kotlin {
     explicitApi()
     @OptIn(ExperimentalWasmDsl::class)
