@@ -18,6 +18,15 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Download Android SDK
+        uses: android-actions/setup-android@v2
+        with:
+          api-level: 36        # choose target SDK version
+          build-tools: 36.0.0  # choose build tools version
+
+      - name: Accept licenses
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
