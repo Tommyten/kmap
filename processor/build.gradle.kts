@@ -13,7 +13,7 @@ dependencies {
 mavenPublishing {
     coordinates(
         libs.versions.groupId.get(),
-        "kmap-ksp",
+        "kmap-processor",
         libs.versions.kmapKspVersion.get(),
     )
 
