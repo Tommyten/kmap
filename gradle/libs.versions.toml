@@ -8,6 +8,7 @@ androidGradlePlugin = "8.10.0"
 # region publishing
 groupId = "es.horm.kmap"
 kmapKspVersion = "0.1.0"
+kmapRuntimeVersion = "0.1.0"
 # endregion
 
 [libraries]

@@ -90,7 +90,11 @@ android {
 }
 
 mavenPublishing {
-    coordinates("es.horm.kmap", "kmap-runtime", "0.1.0")
+    coordinates(
+        groupId = libs.versions.groupId.get(),
+        artifactId = "kmap-runtime",
+        version = libs.versions.kmapRuntimeVersion.get()
+    )
 
     pom {
         name = "KMap"
