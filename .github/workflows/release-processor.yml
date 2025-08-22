@@ -1,4 +1,4 @@
-name: Release Runtime
+name: Release Processor
 on:
   workflow_dispatch:
   push:
