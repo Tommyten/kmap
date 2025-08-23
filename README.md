@@ -1,4 +1,4 @@
-# KMap - Mapping functions for Kotlin, made effortless
+# kmap - Mapping functions for Kotlin, made effortless
 [![Static Badge](https://img.shields.io/badge/Maven_Central-v0.1.0-orange)](https://central.sonatype.com/search?q=es.horm.kmap)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue)](https://github.com/Tommyten/kmap/blob/master/LICENSE)
 
