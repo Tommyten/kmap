@@ -8,6 +8,6 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":runtime"))
-    ksp(project(":processor"))
+    implementation("es.horm.kmap:kmap-runtime:0.1.0")
+    ksp("es.horm.kmap:kmap-processor:0.1.0")
 }
